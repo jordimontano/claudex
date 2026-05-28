@@ -25,11 +25,11 @@
 
 ## Why you might want this
 
-- 🔑 **No API key.** Reuses your existing `claude auth` session.
-- 🧰 **No tools in the subprocess.** Claude runs with `--tools ""` — pure text in, pure text out.
-- 🔒 **No env leakage.** Strict allowlist — your `GITHUB_TOKEN`, `OPENAI_API_KEY`, AWS creds, etc. never touch the child process.
-- ⏱ **No hangs.** Hard timeout, SIGTERM, then SIGKILL fallback.
-- 🪶 **No bloat.** One file. Two dependencies.
+- **No API key.** Reuses your existing `claude auth` session.
+- **No tools in the subprocess.** Claude runs with `--tools ""` — pure text in, pure text out.
+- **No env leakage.** Strict allowlist — your `GITHUB_TOKEN`, `OPENAI_API_KEY`, AWS creds, etc. never touch the child process.
+- **No hangs.** Hard timeout, SIGTERM, then SIGKILL fallback.
+- **No bloat.** One file. Two dependencies.
 
 ## Install
 
