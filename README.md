@@ -61,7 +61,9 @@ npm install
 # then point Codex at `node /absolute/path/to/claudex/server.mjs`
 ```
 
-## The tool
+## The tools
+
+claudex exposes two tools. Use the first for free-form conversation, the second when you want a machine-readable answer.
 
 ### `ask_claude_code`
 
@@ -70,10 +72,10 @@ Send a prompt to Claude Code and get plain-text output back.
 | Param | Type | Required | Bounds |
 |---|---|---|---|
 | `prompt` | string | yes | 1 – 100,000 chars |
-| `model` | string | no | matches `^[a-zA-Z0-9._:-]{1,64}$`, e.g. `claude-sonnet-4-6` |
+| `model` | string | no | matches `^[a-zA-Z0-9][a-zA-Z0-9._:-]{0,63}$`, e.g. `claude-sonnet-4-6` |
 | `timeout_ms` | number | no | 1,000 – 600,000. Default `120000` |
 
-**Example usage from an MCP client:**
+**Example call:**
 
 ```json
 {
@@ -84,6 +86,66 @@ Send a prompt to Claude Code and get plain-text output back.
   }
 }
 ```
+
+### `ask_claude_code_review`
+
+Get a **structured JSON review** so the calling agent can branch on it programmatically.
+
+Same parameters as `ask_claude_code`. claudex wraps your prompt with strict JSON-output instructions, parses Claude's response, and validates it against the schema below before returning. Malformed responses produce a clear error instead of silently breaking your caller.
+
+**Response schema:**
+
+```ts
+{
+  verdict:    "LGTM" | "CONCERNS" | "REJECT",
+  concerns:   string[],
+  confidence: 1 | 2 | ... | 10,
+  summary:    string
+}
+```
+
+**Example call:**
+
+```json
+{
+  "tool": "ask_claude_code_review",
+  "arguments": {
+    "prompt": "Review this diff for race conditions:\n\ndiff --git a/...",
+    "model": "claude-opus-4-7"
+  }
+}
+```
+
+**Example response:**
+
+```json
+{
+  "verdict": "CONCERNS",
+  "concerns": [
+    "writes to `users.balance` are not wrapped in a transaction",
+    "the retry loop has no backoff and can pile up on lock contention"
+  ],
+  "confidence": 8,
+  "summary": "Logic is sound but the concurrency story needs work before this lands."
+}
+```
+
+The calling agent can then do:
+
+```js
+if (review.verdict === "REJECT") abort();
+if (review.verdict === "CONCERNS" && review.confidence >= 7) showHumanReview();
+```
+
+### Choosing a model
+
+| Model | Best for | Speed |
+|---|---|---|
+| `claude-haiku-4-5` | Quick sanity checks, simple style/syntax review | Fast |
+| `claude-sonnet-4-6` | Architecture review, refactor critique, general second opinion | Balanced |
+| `claude-opus-4-7` | Security review, gnarly concurrency, anything where being right matters | Slower |
+
+Omit the `model` parameter to let Claude Code pick its default.
 
 ## Configuration
 
@@ -105,21 +167,29 @@ claudex is designed to make Claude useful as a sub-agent **without** dragging yo
 **In claudex itself:**
 
 - Forwards only an explicit allowlist of env vars (`PATH`, `HOME`, `LANG`, `TERM`, `TMPDIR`, …). Everything else stays in the parent.
-- Caps `stdout` at 1 MiB and `prompt` at 100 KB.
-- Validates the `model` argument against a strict regex.
+- Caps `stdout` at 1 MiB, `stderr` at 64 KiB in-memory, and `prompt` at 100 KB.
+- Validates the `model` argument against a strict regex; the first character must be alphanumeric, so it can't ever be confused with a CLI flag.
 - Scrubs absolute paths from `stderr` before returning errors (no `/Users/<you>/…` in tracebacks).
 - SIGTERM on timeout, SIGKILL 5 s later if the child won't quit.
+- Cleans up in-flight Claude subprocesses if the parent (Codex, etc.) terminates the MCP server — no orphan processes.
+
+### Known limitations
+
+- **`ask_claude_code_review` is not prompt-injection-proof.** The tool wraps your prompt with strict JSON-output instructions, but if you feed it untrusted text (e.g. content scraped from the web, a third-party PR description) that text could include adversarial instructions designed to manipulate Claude's verdict. This is the universal "wrapping an LLM" problem. Treat reviews on untrusted input as advisory, not authoritative.
+- **No concurrency cap.** A client that sends many tool calls in parallel will spawn that many `claude` subprocesses. In practice MCP clients call serially; if you need a hard cap, run claudex behind a semaphore.
+- **The subprocess uses your local Claude subscription.** All standard Anthropic usage policies apply to whatever it generates.
 
 If you spot a way to break any of the above, please [open an issue](https://github.com/jordimontano/claudex/issues) or message me.
 
 ## Development
 
 ```sh
-node server.mjs    # runs the MCP server on stdio
-node --check server.mjs   # syntax check
+npm start         # run the MCP server on stdio
+npm run check     # syntax check
+npm test          # smoke test against a live `claude` process (7 checks)
 ```
 
-The whole thing is one ~140-line file ([`server.mjs`](server.mjs)). Read it. It's short.
+The whole thing is one short file: [`server.mjs`](server.mjs). The test harness ([`test/smoke.mjs`](test/smoke.mjs)) speaks real MCP over stdio and exercises both tools end-to-end.
 
 ## License
 

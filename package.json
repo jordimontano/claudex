@@ -1,6 +1,6 @@
 {
   "name": "claudex-mcp",
-  "version": "0.2.0",
+  "version": "0.3.0",
   "description": "MCP server that lets Codex (or any MCP client) phone Claude Code for a second opinion — no Anthropic API key required.",
   "main": "server.mjs",
   "type": "module",
@@ -14,7 +14,9 @@
   ],
   "scripts": {
     "start": "node server.mjs",
-    "check": "node --check server.mjs"
+    "check": "node --check server.mjs",
+    "test": "node --check server.mjs && node test/smoke.mjs",
+    "prepublishOnly": "node --check server.mjs"
   },
   "keywords": [
     "mcp",
