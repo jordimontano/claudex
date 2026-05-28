@@ -5,6 +5,7 @@
 </p>
 
 <p align="center">
+  <a href="https://www.npmjs.com/package/claudex-mcp"><img src="https://img.shields.io/npm/v/claudex-mcp?color=black&label=npm" alt="npm version"></a>
   <a href="https://github.com/jordimontano/claudex/blob/main/LICENSE"><img src="https://img.shields.io/badge/license-MIT-black.svg" alt="MIT License"></a>
   <img src="https://img.shields.io/badge/node-%E2%89%A518-black.svg" alt="Node ≥ 18">
   <img src="https://img.shields.io/badge/MCP-server-black.svg" alt="MCP server">
@@ -33,13 +34,9 @@
 
 ## Install
 
-```sh
-git clone https://github.com/jordimontano/claudex.git
-cd claudex
-npm install
-```
+You need [Claude Code](https://docs.claude.com/claude-code) installed and logged in. Run `claude` once to authenticate. That's the only prerequisite.
 
-You also need [Claude Code](https://docs.claude.com/claude-code) installed and logged in — run `claude` once to authenticate.
+claudex itself doesn't need to be installed at all — `npx` will fetch and run it on demand. Just point Codex at it.
 
 ## Wire it up to Codex
 
@@ -47,13 +44,22 @@ Add to your Codex MCP config (`~/.codex/config.toml`):
 
 ```toml
 [mcp_servers.claudex]
-command = "node"
-args = ["/absolute/path/to/claudex/server.mjs"]
+command = "npx"
+args = ["-y", "claudex-mcp"]
 ```
 
 Restart Codex. The `ask_claude_code` tool will show up in its toolbox.
 
 > **Tip:** any MCP-aware client works. Drop the same `command`/`args` into Claude Desktop, Cursor, Zed, or your own agent and it just runs.
+
+### Prefer a local clone?
+
+```sh
+git clone https://github.com/jordimontano/claudex.git
+cd claudex
+npm install
+# then point Codex at `node /absolute/path/to/claudex/server.mjs`
+```
 
 ## The tool
 
