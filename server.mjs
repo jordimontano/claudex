@@ -215,7 +215,7 @@ function extractJsonObject(raw) {
 
 const server = new McpServer({
   name: "claude-code",
-  version: "0.3.0",
+  version: "0.3.1",
 });
 
 server.registerTool(
