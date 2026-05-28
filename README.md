@@ -159,7 +159,8 @@ claudex is designed to make Claude useful as a sub-agent **without** dragging yo
 
 **In the spawned `claude` subprocess:**
 
-- `--tools ""` — no tool access (no Bash, no file I/O, nothing).
+- `--allowedTools ""` + explicit `--disallowedTools "Bash,Edit,Write,Read,..."` — no built-in tools can fire (verified by trying to run a `date +%N` Bash command and confirming Claude can't execute it).
+- `--strict-mcp-config` — your globally-configured MCP servers (`~/.claude/mcp.json`) **do not load** into the subprocess. Without this flag, Claude Code happily loads your Supabase / GitHub / etc. MCP credentials into the child, even with built-in tools disabled. With it, the subprocess sees zero MCP tools.
 - `--permission-mode dontAsk` — no permission prompts can surface.
 - `--no-session-persistence` — nothing is saved between calls.
 - `--disable-slash-commands` — no `/` commands available.

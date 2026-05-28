@@ -58,6 +58,17 @@ function scrubStderr(raw) {
 
 const activeChildren = new Set();
 
+// Explicit denylist for defense-in-depth on top of `--allowedTools ""`.
+// `--tools ""` is NOT used: empirically it stops blocking built-in tools
+// when combined with `--strict-mcp-config` on Claude Code 2.1.x.
+// `--allowedTools ""` (allowlist semantic) is the reliable kill switch.
+const DISALLOWED_TOOLS = [
+  "Bash", "Edit", "Write", "Read", "MultiEdit", "Glob", "Grep",
+  "WebFetch", "WebSearch",
+  "Task", "NotebookEdit", "SlashCommand",
+  "Skill", "ToolSearch",
+].join(",");
+
 function runClaudeCode({ prompt, model, timeoutMs }) {
   return new Promise((resolve, reject) => {
     const args = [
@@ -67,7 +78,13 @@ function runClaudeCode({ prompt, model, timeoutMs }) {
       "--no-session-persistence",
       "--disable-slash-commands",
       "--permission-mode", "dontAsk",
-      "--tools", "",
+      // `--strict-mcp-config` blocks the user's globally-configured MCP
+      // servers (e.g. ~/.claude/mcp.json) from being loaded into the
+      // subprocess. Without this, Supabase/GitHub/etc. tokens reach the
+      // child even with all built-in tools disabled.
+      "--strict-mcp-config",
+      "--allowedTools", "",
+      "--disallowedTools", DISALLOWED_TOOLS,
     ];
 
     if (model) args.push("--model", model);
@@ -215,7 +232,7 @@ function extractJsonObject(raw) {
 
 const server = new McpServer({
   name: "claude-code",
-  version: "0.3.1",
+  version: "0.3.2",
 });
 
 server.registerTool(
